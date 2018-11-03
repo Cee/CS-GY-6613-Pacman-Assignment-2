@@ -21,7 +21,7 @@ import math
 class RandomAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
@@ -33,30 +33,30 @@ class RandomAgent(Agent):
 class RandomSequenceAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        self.actionList = [];
+        self.actionList = []
         for i in range(0,10):
-            self.actionList.append(Directions.STOP);
-        return;
+            self.actionList.append(Directions.STOP)
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # get all legal actions for pacman
-        possible = state.getAllPossibleActions();
+        possible = state.getAllPossibleActions()
         for i in range(0,len(self.actionList)):
-            self.actionList[i] = possible[random.randint(0,len(possible)-1)];
-        tempState = state;
+            self.actionList[i] = possible[random.randint(0,len(possible)-1)]
+        tempState = state
         for i in range(0,len(self.actionList)):
             if tempState.isWin() + tempState.isLose() == 0:
-                tempState = tempState.generatePacmanSuccessor(self.actionList[i]);
+                tempState = tempState.generatePacmanSuccessor(self.actionList[i])
             else:
-                break;
+                break
         # returns random action from all the valide actions
-        return self.actionList[0];
+        return self.actionList[0]
 
 class HillClimberAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
@@ -66,7 +66,7 @@ class HillClimberAgent(Agent):
 class GeneticAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
@@ -76,7 +76,7 @@ class GeneticAgent(Agent):
 class MCTSAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):

@@ -56,12 +56,51 @@ class RandomSequenceAgent(Agent):
 class HillClimberAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
+        # Action Sequence are of length 5
+        self.actionList = []
+        for i in range(0, 5):
+            self.actionList.append(Directions.STOP)
         return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
-        # TODO: write Hill Climber Algorithm instead of returning Directions.STOP
-        return Directions.STOP
+        # get all legal actions for pacman
+        possible = state.getAllPossibleActions()
+        for i in range(0, len(self.actionList)):
+            self.actionList[i] = random.choice(possible)
+
+        # keep tracking best action list and its score
+        bestScore = float('-inf')
+        bestActionList = self.actionList[:] # get a copy
+
+        while True:
+            currState = state
+            currScore = gameEvaluation(state, currState)
+            for i in range(0, len(self.actionList)):
+                # if the state is a win/lose state, break
+                if currState.isWin():
+                    break
+                if currState.isLose():
+                    break
+                # apply this action to curr state
+                currState = currState.generatePacmanSuccessor(self.actionList[i])
+                if not currState:
+                    break
+                else:
+                    # update score
+                    currScore = gameEvaluation(state, currState)
+            if currScore > bestScore:
+                bestScore = currScore
+                bestActionList = self.actionList[:] # get a copy
+            # Each action in the sequence has 50% chance to be changed into random action.
+            if not currState:
+                break
+            possible = currState.getAllPossibleActions()
+            for i in range(0, len(self.actionList)):
+                if random.randint(0, 1) == 1:
+                    self.actionList[i] = random.choice(possible)
+
+        return bestActionList[0]
 
 class GeneticAgent(Agent):
     # Initialization Function: Called one time when the game starts

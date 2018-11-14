@@ -107,10 +107,95 @@ class GeneticAgent(Agent):
     def registerInitialState(self, state):
         return
 
+    def selection(self, chromosomes):
+        n = len(chromosomes)
+        total = n * (n + 1) // 2 # sum: n + (n - 1) + ... + 1
+        rand = random.randint(1, total)
+        # print total, rand
+        sum = 0
+        for i in range(0, n):
+            sum += (n - i)
+            if sum >= rand:
+                return chromosomes[i]
+        return None
+
     # GetAction Function: Called with every frame
     def getAction(self, state):
-        # TODO: write Genetic Algorithm instead of returning Directions.STOP
-        return Directions.STOP
+        # get all legal actions for pacman
+        possible = state.getAllPossibleActions()
+        # initalially assign actions to each chromosome
+        # Population of size 8
+        self.chromosomes = []
+        for _ in range(0, 8):
+            chromosome = []
+            # Each chromosome is an action sequence of length 5
+            for i in range(0, 5):
+                chromosome.append(random.choice(possible))
+            self.chromosomes.append(chromosome[:])
+            # print chromosome
+
+        # Keep highest ranked chromosomes
+        self.ranked = []
+
+        none_occurred = False
+        while not none_occurred:
+            ranked = []
+            for chromosome in self.chromosomes:
+                currState = state
+                currScore = gameEvaluation(state, currState)
+                for i in range(0, len(chromosome)):
+                    # if the state is a win/lose state, break
+                    if currState.isWin():
+                        break
+                    if currState.isLose():
+                        break
+                    # apply this action to curr state
+                    currState = currState.generatePacmanSuccessor(chromosome[i])
+                    if not currState:
+                        none_occurred = True
+                        break
+                    else:
+                        # update score
+                        currScore = gameEvaluation(state, currState)
+                ranked.append((chromosome[:], currScore))
+            # sort score from high to low
+            self.ranked = sorted(ranked, key = lambda pair: -pair[1])[:]
+            # keep sorted chromosomes
+            self.chromosomes = [pair[0] for pair in self.ranked][:]
+
+            # population
+            population = []
+            while len(population) < len(self.chromosomes):
+                chromosome_x = self.selection(self.chromosomes)
+                chromosome_y = self.selection(self.chromosomes)
+                if random.randint(1, 10) <= 7:
+                    # 70% - crossover
+                    chromosome_new = []
+                    for i in range(0, len(chromosome_x)):
+                        if random.randint(0, 1) == 0:
+                            # 50% - choose x
+                            chromosome_new.append(chromosome_x[i])
+                        else:
+                            chromosome_new.append(chromosome_y[i])
+                    population.append(chromosome_new[:])
+                else:
+                    # 30% - keep both
+                    population.append(chromosome_x[:])
+                    population.append(chromosome_y[:])
+
+            # Keep 8 chromosomes
+            population = population[:len(self.chromosomes)]
+
+            # mutated chromosomes
+            for chromosome in population:
+                if random.randint(1, 10) == 1:
+                    # 10% - mutate the chromosome by random choice
+                    rand_index = random.randint(0, 4)
+                    chromosome[rand_index] = random.choice(possible)
+            # new round
+            self.chromosomes = population[:]
+        # print self.ranked
+        return self.ranked[0][0][0]
 
 class MCTSAgent(Agent):
     # Initialization Function: Called one time when the game starts

@@ -198,11 +198,96 @@ class GeneticAgent(Agent):
         return self.ranked[0][0][0]
 
 class MCTSAgent(Agent):
+    class TreeNode(object):
+        def __init__(self):
+            self.parent = None
+            self.action = None # parent and action could decide this node
+            self.expanded = set() # keep expanded actions
+            self.children = []
+            self.n = 0
+            self.reward = 0
+
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
         return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
-        # TODO: write MCTS Algorithm instead of returning Directions.STOP
-        return Directions.STOP
+        # create the root node
+        self.root_state = state
+        root = self.TreeNode()
+        while True:
+            vl = self.tree_policy((root, state))
+            if vl is None:
+                break
+            reward = self.default_policy(vl[1])
+            if reward is None:
+                break
+            self.back_up(vl[0], reward)
+        # pick best child's action
+        return self.uct((root, state)).action
+
+    def tree_policy(self, v):
+        # v is nonterminal
+        while (v[1].isWin() + v[1].isLose()) == 0:
+            if len(v[0].expanded) != len(v[1].getLegalPacmanActions()):
+                # v is not fully expanded
+                return self.expand(v)
+            else:
+                # v is fully expanded, pick best child
+                best_child = self.uct(v)
+                v = (best_child, v[1].generatePacmanSuccessor(best_child.action))
+                if v[1] is None:
+                    return None
+        return v
+
+    def expand(self, v):
+        actions = v[1].getLegalPacmanActions()
+        untried = []
+        for action in actions:
+            if action not in v[0].expanded:
+                untried.append(action)
+        if len(untried) == 0:
+            # impossible to hit here (fully expanded)
+            return None
+        # not fully expanded, expand this node, choose a from untried actions
+        a = random.choice(untried)
+        v[0].expanded.add(a)
+        # add a new child v' to v
+        child_node = self.TreeNode()
+        child_node.parent = v[0]
+        child_node.action = a
+        child_state = v[1].generatePacmanSuccessor(a) # use this action
+        if child_state is None:
+            return None
+        v[0].children.append(child_node)
+        v_prime = (child_node, child_state)
+        return v_prime
+
+    def uct(self, v, c=1):
+        if (v[1].isWin() + v[1].isLose()) > 0:
+            return v[1]
+        # sort by uct equation from low -> hight:
+        #   Q(v')/N(v') + c * sqrt(2 ln N(v) / N(v'))
+        v[0].children.sort(key = lambda child: ((child.reward / child.n) + c * math.sqrt(2 * math.log(child.parent.n) / child.n)) if child.n > 0 else float('inf'))
+        return v[0].children[-1]
+
+    def default_policy(self, state, rollouts=5):
+        # Fix the number of rollouts to 5 as its hard to 
+        # reach a terminal state in small amount of time
+        curr = state
+        while (curr.isWin() + curr.isLose() == 0) and (rollouts > 0):
+            rollouts -= 1
+            actions = curr.getLegalPacmanActions()
+            action = random.choice(actions) # choose action uniformly at random
+            curr = curr.generatePacmanSuccessor(action) # apply action
+            if curr is None:
+                return None
+        return gameEvaluation(self.root_state, curr)
+
+    def back_up(self, node, reward):
+        # back up the values from the added node up the tree to the root
+        while node is not None:
+            node.n += 1
+            node.reward += reward
+            node = node.parent
